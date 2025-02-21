@@ -169,13 +169,20 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
             </div>
           </>
         ) : (
-          <a 
-            href={isOwnProfile !== null ? (isOwnProfile ? `/?fid=${fid}` : '/') : '#'}
-            className={`inline-block mb-4 px-6 py-2 bg-nba-orange text-white font-semibold rounded-full transition-colors ${isOwnProfile === null || isSharing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-nba-orange/90'}`}
-            onClick={isOwnProfile ? handleShare : (e => isOwnProfile === null && e.preventDefault())}
-          >
-            {isOwnProfile === null ? 'Loading...' : (isOwnProfile ? (isSharing ? 'Sharing...' : 'Share Results →') : 'Try Yours →')}
-          </a>
+          <>
+            {isOwnProfile === false && (
+              <p className="text-gray-600 mb-4 font-semibold text-base">
+                Viewing @{userInfo.username}'s results, get your own:
+              </p>
+            )}
+            <a 
+              href={isOwnProfile !== null ? (isOwnProfile ? `/?fid=${fid}` : '/') : '#'}
+              className={`inline-block mb-4 px-6 py-2 bg-nba-orange text-white font-semibold rounded-full transition-colors ${isOwnProfile === null || isSharing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-nba-orange/90'}`}
+              onClick={isOwnProfile ? handleShare : (e => isOwnProfile === null && e.preventDefault())}
+            >
+              {isOwnProfile === null ? 'Loading...' : (isOwnProfile ? (isSharing ? 'Sharing...' : 'Share Results →') : 'Try Yours →')}
+            </a>
+          </>
         )}
       </div>
 
