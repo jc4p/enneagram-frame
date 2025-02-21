@@ -42,14 +42,36 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
     return () => clearInterval(interval);
   }, [fid, userFid]);
 
+  async function analyzeWithRetry(fid, maxRetries = 4) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(`/api/analyze-profile?fid=${fid}`);
+        const data = await response.json();
+        
+        // Validate the response has the expected structure
+        if (!data?.analysis?.enneagramType || !data?.username) {
+          throw new Error('Invalid response structure');
+        }
+        
+        return data;
+      } catch (error) {
+        console.error(`Analysis attempt ${attempt} failed:`, error);
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        // Exponential backoff: wait longer between each retry
+        await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt), 8000)));
+      }
+    }
+  }
+
   // Load analysis if we have an FID in the URL but no initial data
   useEffect(() => {
     async function loadAnalysis() {
       if (!initialFid || initialData) return;
       
       try {
-        const response = await fetch(`/api/analyze-profile?fid=${initialFid}`);
-        const data = await response.json();
+        const data = await analyzeWithRetry(initialFid);
         console.log('Loaded analysis for FID:', initialFid, 'Data:', data);
         setAnalysis(data.analysis);
         setFid(data.fid);
@@ -61,6 +83,7 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
         });
       } catch (error) {
         console.error('Error loading analysis:', error);
+        alert('Failed to load analysis. Please try again.');
       }
     }
 
@@ -76,8 +99,7 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
         return;
       }
 
-      const response = await fetch(`/api/analyze-profile?fid=${userFid}`);
-      const data = await response.json();
+      const data = await analyzeWithRetry(userFid);
       console.log('Analysis result:', data);
       
       // Update the URL with the new FID
@@ -96,6 +118,7 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
       setIsOwnProfile(true);
     } catch (error) {
       console.error('Error:', error);
+      alert('Analysis failed. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
