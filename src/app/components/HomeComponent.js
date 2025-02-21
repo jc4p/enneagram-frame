@@ -219,20 +219,22 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
                 </ul>
               </div>
 
-              <div>
-                <h3 className="font-semibold mb-2">We also considered:</h3>
-                <ul className="space-y-4">
-                  {analysis.whyNotOtherTypes.map((type, i) => (
-                    <li key={i} className="relative">
-                      <div className="absolute inset-0 bg-white/70 rounded shadow-sm" />
-                      <div className="relative p-4">
-                        <h4 className="font-medium text-lg mb-1">{ENNEAGRAM_TYPES[type.type]}</h4>
-                        <p className="text-gray-800">{type.reason}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {analysis.whyNotOtherTypes?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">We also considered:</h3>
+                  <ul className="space-y-4">
+                    {analysis.whyNotOtherTypes.map((type, i) => (
+                      <li key={i} className="relative">
+                        <div className="absolute inset-0 bg-white/70 rounded shadow-sm" />
+                        <div className="relative p-4">
+                          <h4 className="font-medium text-lg mb-1">{ENNEAGRAM_TYPES[type.type]}</h4>
+                          <p className="text-gray-800">{type.reason}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>
