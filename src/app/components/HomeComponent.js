@@ -219,7 +219,7 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
                 </ul>
               </div>
 
-              {analysis.whyNotOtherTypes?.length > 0 && (
+              {analysis.whyNotOtherTypes?.length > 0 && analysis.whyNotOtherTypes[0].reason && (
                 <div>
                   <h3 className="font-semibold mb-2">We also considered:</h3>
                   <ul className="space-y-4">
