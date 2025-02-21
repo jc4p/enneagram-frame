@@ -61,7 +61,7 @@ export async function GET(request) {
           justifyContent: 'center',
           backgroundColor: '#FDA4AF',
           padding: '60px 40px',
-          color: '#FFF5F5',
+          color: '#030303',
           fontFamily: 'Karla',
         }}>
           <div style={{
@@ -101,8 +101,7 @@ export async function GET(request) {
           <span style={{
             fontSize: '42px',
             fontWeight: 800,
-            marginBottom: '16px',
-            color: 'white'
+            marginBottom: '16px'
           }}>
             According to my casts, I'm a...
           </span>
@@ -118,7 +117,6 @@ export async function GET(request) {
           <span style={{
             fontSize: '42px',
             fontWeight: 500,
-            color: 'white',
           }}>
             Discover Your Own Enneagram Type ↓
           </span>
