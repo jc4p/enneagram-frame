@@ -8,6 +8,8 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(initialData?.analysis || null);
   const [fid, setFid] = useState(initialFid);
+  const [userFid, setUserFid] = useState(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(null);
   const [userInfo, setUserInfo] = useState(
     initialData ? {
       username: initialData.username,
@@ -16,6 +18,29 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
       profile: { bio: { text: initialData.bio } }
     } : null
   );
+  const [isSharing, setIsSharing] = useState(false);
+
+  // Listen for userFid changes
+  useEffect(() => {
+    const checkUserFid = () => {
+      const currentUserFid = window.userFid;
+      
+      if (currentUserFid !== userFid) {
+        setUserFid(currentUserFid);
+        setIsOwnProfile(currentUserFid ? (currentUserFid && fid && Number(currentUserFid) === Number(fid)) : null);
+        console.log('Profile comparison:', { userFid: currentUserFid, fid });
+      }
+    };
+    
+    // Check immediately
+    checkUserFid();
+
+    // Set up an interval to check periodically
+    const interval = setInterval(checkUserFid, 1000);
+
+    // Clean up
+    return () => clearInterval(interval);
+  }, [fid, userFid]);
 
   // Load analysis if we have an FID in the URL but no initial data
   useEffect(() => {
@@ -73,9 +98,43 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
     }
   };
 
-  const userFid = typeof window !== 'undefined' ? window.userFid : null;
-  const isOwnProfile = userFid && fid && Number(userFid) === Number(fid);
-  console.log('Profile comparison:', { userFid, fid, isOwnProfile });
+  const handleShare = async (e) => {
+    e.preventDefault();
+    setIsSharing(true);
+    
+    try {
+      // Generate share image
+      const response = await fetch('/api/generate-share-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fid })
+      });
+      
+      if (!response.ok) throw new Error('Failed to generate share image');
+      const { imageUrl } = await response.json();
+
+      // Create share text with enneagram type
+      const shareText = `I'm a ${ENNEAGRAM_TYPES[analysis.enneagramType]}! Check out your own Enneagram analysis by pressing the button below.`;
+      
+      // Create Warpcast share URL with app URL and image as embeds
+      const encodedText = encodeURI(shareText);
+      const encodedAppUrl = encodeURIComponent(`${process.env.NEXT_PUBLIC_BASE_URL}?fid=${fid}`);
+      const shareUrl = `https://warpcast.com/~/compose?text=${encodedText}&embeds[]=${encodedAppUrl}`;
+
+      // Open share URL using Frame SDK
+      if (window.frame?.sdk?.actions?.openUrl) {
+        window.frame.sdk.actions.openUrl(shareUrl);
+      } else {
+        console.error('Frame SDK not available for sharing');
+        throw new Error('Unable to open share dialog');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      alert('Failed to share. Please try again.');
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   return (
     <Layout>
@@ -108,10 +167,11 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
           </>
         ) : (
           <a 
-            href={isOwnProfile ? `/?fid=${fid}` : '/'}
-            className="inline-block mb-4 px-6 py-2 bg-nba-orange text-white font-semibold rounded-full hover:bg-nba-orange/90 transition-colors"
+            href={isOwnProfile !== null ? (isOwnProfile ? `/?fid=${fid}` : '/') : '#'}
+            className={`inline-block mb-4 px-6 py-2 bg-nba-orange text-white font-semibold rounded-full transition-colors ${isOwnProfile === null || isSharing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-nba-orange/90'}`}
+            onClick={isOwnProfile ? handleShare : (e => isOwnProfile === null && e.preventDefault())}
           >
-            {isOwnProfile ? 'Share Results →' : 'Try Yours →'}
+            {isOwnProfile === null ? 'Loading...' : (isOwnProfile ? (isSharing ? 'Sharing...' : 'Share Results →') : 'Try Yours →')}
           </a>
         )}
       </div>
@@ -150,7 +210,7 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">Why Not Other Types:</h3>
+                <h3 className="font-semibold mb-2">We also considered:</h3>
                 <ul className="space-y-4">
                   {analysis.whyNotOtherTypes.map((type, i) => (
                     <li key={i} className="relative">

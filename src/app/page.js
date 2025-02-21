@@ -2,6 +2,7 @@
 import HomeComponent from './components/HomeComponent';
 import { generateFrameMetadata } from '../lib/page-metadata';
 import { analyzePersonality, fetchUserInfo, fetchUserCasts } from '../lib/analysis';
+import { getFromKV, putToKV } from '../lib/cloudflare-kv';
 
 export const ENNEAGRAM_TYPES = {
   1: "Type 1 (The Reformer)",
@@ -27,21 +28,40 @@ export default async function Page({ searchParams }) {
   let initialData = null;
   if (fid && !isNaN(fid)) {
     try {
-      const [userInfo, casts] = await Promise.all([
-        fetchUserInfo(fid),
-        fetchUserCasts(fid),
-      ]);
-      
-      const analysis = await analyzePersonality(userInfo.profile?.bio?.text || null, casts);
-      
-      initialData = {
-        fid,
-        analysis,
-        username: userInfo.username,
-        displayName: userInfo.display_name,
-        pfpUrl: userInfo.pfp_url,
-        bio: userInfo.profile?.bio?.text || null,
-      };
+      // Try to get from KV cache first
+      const cacheKey = `enneagram:analysis:${fid}`;
+      const cachedData = await getFromKV(cacheKey);
+      if (cachedData) {
+        try {
+          const parsed = JSON.parse(cachedData);
+          initialData = parsed.value ? JSON.parse(parsed.value) : parsed;
+        } catch (e) {
+          console.error('Error parsing cached data:', e);
+        }
+      }
+
+      // If no cache hit, compute and cache
+      if (!initialData) {
+        console.log('Cache miss in SSR, computing analysis for FID:', fid);
+        const [userInfo, casts] = await Promise.all([
+          fetchUserInfo(fid),
+          fetchUserCasts(fid),
+        ]);
+        
+        const analysis = await analyzePersonality(userInfo.profile?.bio?.text || null, casts);
+        
+        initialData = {
+          fid,
+          analysis,
+          username: userInfo.username,
+          displayName: userInfo.display_name,
+          pfpUrl: userInfo.pfp_url,
+          bio: userInfo.profile?.bio?.text || null,
+        };
+
+        // Cache the result
+        await putToKV(cacheKey, initialData);
+      }
     } catch (error) {
       console.error('Error in SSR:', error);
     }

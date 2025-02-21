@@ -1,22 +1,4 @@
-const KV_URL = `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/storage/kv/namespaces/${process.env.KV_BINDING}/values`;
-
-async function getFromKV(key) {
-  try {
-    const response = await fetch(`${KV_URL}/${key}`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.CF_API_TOKEN}`,
-      },
-    });
-    
-    if (response.ok) {
-      const data = await response.text();
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('Error reading from KV:', error);
-  }
-  return null;
-}
+import { getFromKV } from './cloudflare-kv';
 
 export async function generateFrameMetadata({ searchParams }) {
   const { fid } = await searchParams;
@@ -26,18 +8,23 @@ export async function generateFrameMetadata({ searchParams }) {
   let buttonText = "Analyze My Enneagram";
 
   if (fid) {
-    // Try to get the analysis from KV cache
-    const cacheKey = `enneagram:analysis:${fid}`;
-    const cachedAnalysis = await getFromKV(cacheKey);
-    if (cachedAnalysis?.analysis) {
-      // If we have an analysis, show the share button instead
-      buttonText = "Get Your Enneagram Type";
-      // You could generate a dynamic image here based on the analysis
-      // imageUrl = cachedAnalysis.dynamicImageUrl;
+    // Try to get the share image URL from KV
+    const cacheKey = `enneagram:share-image:${fid}`;
+    const cachedImageUrl = await getFromKV(cacheKey);
+    if (cachedImageUrl) {
+      try {
+        imageUrl = JSON.parse(cachedImageUrl);
+        buttonText = "Get Your Enneagram Type";
+      } catch (e) {
+        console.error('Error parsing cached image URL:', e);
+        imageUrl = cachedImageUrl; // fallback to raw value if parsing fails
+      }
     }
     // Add fid to the target URL
     targetUrl = `${baseUrl}?fid=${fid}`;
   }
+
+  console.log('image url', imageUrl);
 
   return {
     title: "Enneagram Guesser",
