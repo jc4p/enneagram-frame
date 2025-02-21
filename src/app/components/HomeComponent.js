@@ -91,6 +91,9 @@ export default function HomeComponent({ fid: initialFid, initialData }) {
         pfp_url: data.pfpUrl,
         profile: { bio: { text: data.bio } }
       });
+      
+      // Since this is the user's own analysis, set isOwnProfile to true
+      setIsOwnProfile(true);
     } catch (error) {
       console.error('Error:', error);
     } finally {
