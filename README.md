@@ -5,11 +5,13 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 First, install dependencies:
 
 ```bash
-npm run dev
+npm i
 # or
-yarn dev
+yarn
 # or
-pnpm dev
+pnpm i
+# or
+bun install
 ```
 
 Then, make a copy of .env.sample
